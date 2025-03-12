@@ -1,11 +1,9 @@
+require("dotenv").config({path:"../.env"}); 
 const express = require("express");
 const connectDB = require("./config/db");
 const errorHandler = require("./middlewares/errorHandler");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
-
-
-require("dotenv").config();
 
 // Connect to MongoDB
 connectDB();
@@ -22,8 +20,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 
-
 // Error Handling Middleware
 app.use(errorHandler);
 
-module.exports = app; 
+module.exports = app;
