@@ -8,7 +8,7 @@ const MESSAGES = {
         LOGIN_SUCCESS: "Login successful. Welcome back!",
         LOGOUT_SUCCESS: "You have been logged out successfully.",
         ACCOUNT_NOT_VERIFIED: "Your account is not verified. Please verify your email.",
-        ACCOUNT_DELETED: "Your account has been deleted successfully.",  // ✅ Added this
+        ACCOUNT_DELETED: "Your account has been deleted successfullly.",  // ✅ Added this
         OTP_SENT: "OTP has been sent to your email.",
         INVALID_OTP: "Invalid or expired OTP. Please try again.",
         VERIFICATION_SUCCESS: "Account verified successfully.",
