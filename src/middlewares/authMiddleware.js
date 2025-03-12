@@ -1,7 +1,5 @@
-const jwt = require("jsonwebtoken");
 const { StatusCodes } = require("http-status-codes");
 const MESSAGES = require("../constants/Messages");
-const User = require("../models/User");
 const { verifyToken } = require("../utils/jwtUtils");
 
 
