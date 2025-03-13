@@ -1,4 +1,6 @@
 require("dotenv").config({path:"../.env"}); 
+console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
+
 const express = require("express");
 const cors = require("cors"); // Import CORS
 
@@ -13,7 +15,7 @@ connectDB();
 const app = express();
 app.use(
   cors({
-    origin: "https://darling-haupia-64d778.netlify.app", // Allow frontend
+    origin: process.env.FRONTEND_URL || "https://darling-haupia-64d778.netlify.app",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // Allow cookies if needed
   })
