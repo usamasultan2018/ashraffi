@@ -1,33 +1,29 @@
 const { StatusCodes } = require("http-status-codes");
-const MESSAGES = require("../constants/Messages");
 const { verifyToken } = require("../utils/jwtUtils");
-
 
 const authMiddleware = async (req, res, next) => {
     try {
-        // extract token from the request headers
-
-        const token = req.headers.authorization?.split(" ")[1]; // Extract token
+        // Extract token from the request headers
+        const token = req.headers.authorization?.split(" ")[1];
 
         // If no token is provided, return Unauthorized error
         if (!token) {
             return res.status(StatusCodes.UNAUTHORIZED).json({
-                message: MESSAGES.AUTH.UNAUTHORIZED_ACCESS,
+                message: "Unauthorized access",
             });
         }
+
         const decoded = verifyToken(token);
         req.user = decoded;
 
         next();
-
-    }
-    catch (error) {
+    } catch (error) {
         console.error("Auth Middleware Error:", error);
 
         return res.status(StatusCodes.UNAUTHORIZED).json({
-            message: MESSAGES.AUTH.INVALID_TOKEN,
+            message: "Invalid token",
         });
     }
-
 };
+
 module.exports = authMiddleware;

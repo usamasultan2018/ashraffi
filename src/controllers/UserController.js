@@ -1,7 +1,6 @@
 const User = require("../models/User");
-const Referral = require("../models/Referral")
+const Referral = require("../models/Referral");
 const { StatusCodes } = require("http-status-codes");
-const MESSAGES = require("../config/Messages");
 
 const getUserProfile = async (req, res) => {
     try {
@@ -10,7 +9,7 @@ const getUserProfile = async (req, res) => {
 
         if (!user) {
             return res.status(StatusCodes.NOT_FOUND).json({
-                message: MESSAGES.AUTH.USER_NOT_FOUND,
+                message: "User not found.",
             });
         }
 
@@ -18,7 +17,7 @@ const getUserProfile = async (req, res) => {
     } catch (error) {
         console.error("Get Profile Error:", error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
+            message: "Internal server error.",
         });
     }
 };
@@ -30,7 +29,7 @@ const updateUserProfile = async (req, res) => {
 
         if (!username) {
             return res.status(StatusCodes.BAD_REQUEST).json({
-                message: MESSAGES.VALIDATION.MISSING_FIELDS,
+                message: "Username is required.",
             });
         }
 
@@ -42,18 +41,18 @@ const updateUserProfile = async (req, res) => {
 
         if (!user) {
             return res.status(StatusCodes.NOT_FOUND).json({
-                message: MESSAGES.AUTH.USER_NOT_FOUND,
+                message: "User not found.",
             });
         }
 
         res.status(StatusCodes.OK).json({
-            message: MESSAGES.SUCCESS.DATA_UPDATED,
+            message: "User profile updated successfully.",
             user,
         });
     } catch (error) {
         console.error("Update Profile Error:", error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
+            message: "Internal server error.",
         });
     }
 };
@@ -65,42 +64,47 @@ const deleteUserAccount = async (req, res) => {
 
         if (!user) {
             return res.status(StatusCodes.NOT_FOUND).json({
-                message: MESSAGES.AUTH.USER_NOT_FOUND,
+                message: "User not found.",
             });
         }
 
         res.status(StatusCodes.OK).json({
-            message: MESSAGES.AUTH.ACCOUNT_DELETED,
+            message: "User account deleted successfully.",
         });
     } catch (error) {
         console.error("Delete Account Error:", error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
+            message: "Internal server error.",
         });
     }
 };
 
 const getInvitedUsers = async (req, res) => {
-    try{
+    try {
         const userId = req.user.id;
         const referral = await Referral.findOne({ userId });
+
         if (!referral) {
-            return res.status(StatusCodes.NOT_FOUND).json({ message: MESSAGES.ERROR.RESOURCE_NOT_FOUND });
-          }
-          const invitedUsers = await User.find({ _id: { $in: referral.usedBy } }).select(
+            return res.status(StatusCodes.NOT_FOUND).json({
+                message: "Referral record not found.",
+            });
+        }
+
+        const invitedUsers = await User.find({ _id: { $in: referral.usedBy } }).select(
             "_id username email createdAt"
-          );
-          res.status(StatusCodes.OK).json({
-            message: MESSAGES.SUCCESS.DATA_FETCHED,
+        );
+
+        res.status(StatusCodes.OK).json({
+            message: "Invited users fetched successfully.",
             invitedUsers,
-          });
-                    
-    }
-    catch(error){
+        });
+
+    } catch (error) {
         console.error("Fetch Invited Users Error:", error);
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
+            message: "Internal server error.",
         });
     }
-}
-module.exports = { getUserProfile, updateUserProfile, deleteUserAccount,getInvitedUsers };
+};
+
+module.exports = { getUserProfile, updateUserProfile, deleteUserAccount, getInvitedUsers };

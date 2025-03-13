@@ -1,23 +1,22 @@
 const User = require("../models/User");
-const Referral = require("../models/Referral")
-const {generateToken} = require("../utils/jwtUtils");
+const Referral = require("../models/Referral");
+const { generateToken } = require("../utils/jwtUtils");
 const generateOtp = require("../utils/generateOtp");
 const sendEmail = require("../utils/sendEmail");
 const { StatusCodes } = require("http-status-codes");
-const MESSAGES = require("../config/Messages");
 
 const registerUser = async (req, res) => {
   try {
     const { username, email, password, referredBy } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ message: MESSAGES.VALIDATION.MISSING_FIELDS });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({ message: MESSAGES.AUTH.USER_ALREADY_EXISTS });
+      return res.status(409).json({ message: "User already exists" });
     }
 
     // Generate OTP and expiry
@@ -28,7 +27,7 @@ const registerUser = async (req, res) => {
     let referralCode;
     let isUnique = false;
     while (!isUnique) {
-      referralCode = Math.random().toString(36).substring(2, 8).toUpperCase(); // Random 6-character string
+      referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
       const existingReferral = await Referral.findOne({ code: referralCode });
       if (!existingReferral) {
         isUnique = true;
@@ -40,9 +39,9 @@ const registerUser = async (req, res) => {
     if (referredBy) {
       const referrerRecord = await Referral.findOne({ code: referredBy });
       if (!referrerRecord) {
-        return res.status(400).json({ message: MESSAGES.VALIDATION.INVALID_REFERRAL });
+        return res.status(400).json({ message: "Invalid referral code" });
       }
-      referrer = referrerRecord.userId; // Store referrer's userId
+      referrer = referrerRecord.userId;
     }
 
     // Create new user
@@ -53,18 +52,13 @@ const registerUser = async (req, res) => {
       otp,
       otpExpiry,
       referralCode,
-      referredBy: referrer, // Stores the referrer’s user ID
+      referredBy: referrer,
     });
 
     await newUser.save();
 
     // Store the referral code in the Referral collection
-    const newReferral = new Referral({
-      code: referralCode,
-      userId: newUser._id,
-    });
-
-    await newReferral.save();
+    await new Referral({ code: referralCode, userId: newUser._id }).save();
 
     // If referred by someone, update their referral record
     if (referredBy) {
@@ -78,60 +72,59 @@ const registerUser = async (req, res) => {
     await sendEmail(email, otp);
 
     return res.status(201).json({
-      message: MESSAGES.SUCCESS.OTP_SENT,
+      message: "OTP sent successfully",
       userId: newUser._id,
       referralCode,
       referredBy: referredBy || null,
     });
   } catch (error) {
-      console.error("Registration Error:", error);
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
-        error: error.message,
+    console.error("Registration Error:", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(StatusCodes.BAD_REQUEST).json({
+        message: "Missing required fields",
       });
     }
-  };
-  
-  const verifyOtp = async (req, res) => {
-    try {
-      const { email, otp } = req.body;
-  
-      if (!email || !otp) {
-        return res.status(StatusCodes.BAD_REQUEST).json({
-          message: MESSAGES.VALIDATION.MISSING_FIELDS,
-        });
-      }
-  
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(StatusCodes.NOT_FOUND).json({
-          message: MESSAGES.AUTH.USER_NOT_FOUND,
-        });
-      }
-  
-      if (user.otp !== otp || user.otpExpiry < Date.now()) {
-        return res.status(StatusCodes.UNAUTHORIZED).json({
-          message: MESSAGES.OTP.INVALID_OTP,
-        });
-      }
-  
-      user.isVerified = true;
-      user.otp = null;
-      user.otpExpiry = null;
-      await user.save();
-  
-      res.status(StatusCodes.OK).json({
-        message: MESSAGES.AUTH.VERIFICATION_SUCCESS,
-      });
-    } catch (error) {
-      console.error("OTP Verification Error:", error);
-      res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-        message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
-        error: error.message,
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(StatusCodes.NOT_FOUND).json({
+        message: "User not found",
       });
     }
-  };
-  
+
+    if (user.otp !== otp || user.otpExpiry < Date.now()) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    user.isVerified = true;
+    user.otp = null;
+    user.otpExpiry = null;
+    await user.save();
+
+    res.status(StatusCodes.OK).json({
+      message: "Verification successful",
+    });
+  } catch (error) {
+    console.error("OTP Verification Error:", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
 const loginUser = async (req, res) => {
   try {
@@ -139,32 +132,32 @@ const loginUser = async (req, res) => {
 
     if (!email || !password) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        message: MESSAGES.VALIDATION.MISSING_FIELDS,
+        message: "Missing required fields",
       });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
-        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        message: "User not found",
       });
     }
 
     if (!user.isVerified) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
-        message: MESSAGES.AUTH.ACCOUNT_NOT_VERIFIED,
+        message: "Account not verified",
       });
     }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       return res.status(StatusCodes.UNAUTHORIZED).json({
-        message: MESSAGES.AUTH.INVALID_CREDENTIALS,
+        message: "Invalid credentials",
       });
     }
 
     res.status(StatusCodes.OK).json({
-      message: MESSAGES.AUTH.LOGIN_SUCCESS,
+      message: "Login successful",
       user: {
         _id: user._id,
         username: user.username,
@@ -175,7 +168,7 @@ const loginUser = async (req, res) => {
   } catch (error) {
     console.error("Login Error:", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
+      message: "Internal server error",
       error: error.message,
     });
   }
@@ -187,36 +180,36 @@ const resendOtp = async (req, res) => {
 
     if (!email) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        message: MESSAGES.VALIDATION.MISSING_FIELDS,
+        message: "Missing required fields",
       });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(StatusCodes.NOT_FOUND).json({
-        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        message: "User not found",
       });
     }
 
     if (user.isVerified) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        message: MESSAGES.AUTH.ALREADY_VERIFIED,
+        message: "User is already verified",
       });
     }
 
     user.otp = generateOtp();
-    user.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
     await sendEmail(email, "Resend OTP", `Your OTP is: ${user.otp}`);
 
     res.status(StatusCodes.OK).json({
-      message: MESSAGES.AUTH.OTP_SENT,
+      message: "OTP sent successfully",
     });
   } catch (error) {
     console.error("Resend OTP Error:", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
+      message: "Internal server error",
       error: error.message,
     });
   }
@@ -228,14 +221,14 @@ const forgotPassword = async (req, res) => {
 
     if (!email) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        message: MESSAGES.VALIDATION.MISSING_FIELDS,
+        message: "Missing required fields",
       });
     }
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(StatusCodes.NOT_FOUND).json({
-        message: MESSAGES.AUTH.USER_NOT_FOUND,
+        message: "User not found",
       });
     }
 
@@ -245,20 +238,17 @@ const forgotPassword = async (req, res) => {
     await sendEmail(email, "Reset Your Password", `Click here to reset your password: ${resetLink}`);
 
     res.status(StatusCodes.OK).json({
-        message: MESSAGES.AUTH.RESET_LINK_SENT,
-        resetToken,
-      });
-      
+      message: "Reset link sent successfully",
+      resetToken,
+    });
   } catch (error) {
     console.error("Forgot Password Error:", error);
     res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-      message: MESSAGES.ERROR.INTERNAL_SERVER_ERROR,
+      message: "Internal server error",
       error: error.message,
     });
   }
 };
-
-
 
 module.exports = {
   registerUser,
