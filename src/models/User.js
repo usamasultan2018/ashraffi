@@ -11,9 +11,12 @@ const userSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false }, 
     referralCode: { type: String, unique: true }, 
     referredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }, // ✅ Store User ID
+    resetToken: { type: String, default: null }, // ✅ Token for password reset
+    resetTokenExpiry: { type: Date, default: null }, // ✅ Expiry time for reset token
   },
   { timestamps: true }
 );
+
 // Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -35,6 +38,11 @@ userSchema.methods.matchPassword = function (enteredPassword) {
 // Check if OTP is valid
 userSchema.methods.isOtpValid = function (enteredOtp) {
   return this.otp === enteredOtp && this.otpExpires > Date.now();
+};
+
+// Check if reset token is valid
+userSchema.methods.isResetTokenValid = function (token) {
+  return this.resetToken === token && this.resetTokenExpiry > Date.now();
 };
 
 module.exports = mongoose.model("User", userSchema);

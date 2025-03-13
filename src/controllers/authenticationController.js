@@ -221,7 +221,7 @@ const forgotPassword = async (req, res) => {
 
     if (!email) {
       return res.status(StatusCodes.BAD_REQUEST).json({
-        message: "Missing required fields",
+        message: "Email is required",
       });
     }
 
@@ -232,14 +232,23 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    const resetToken = generateToken(user._id);
-    const resetLink = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
+    // Generate a simple random token (16-character alphanumeric)
+    const resetToken = Math.random().toString(36).slice(2, 18);  
+    const resetTokenExpiry = Date.now() + 3600000; // Token expires in 1 hour
 
+    // Store reset token in the database
+    user.resetToken = resetToken;
+    user.resetTokenExpiry = resetTokenExpiry;
+    await user.save();
+
+    // Generate reset password link
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+    // Send reset email
     await sendEmail(email, "Reset Your Password", `Click here to reset your password: ${resetLink}`);
 
     res.status(StatusCodes.OK).json({
       message: "Reset link sent successfully",
-      resetToken,
     });
   } catch (error) {
     console.error("Forgot Password Error:", error);
@@ -250,7 +259,45 @@ const forgotPassword = async (req, res) => {
   }
 };
 
+
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(StatusCodes.BAD_REQUEST).json({ message: "Token and new password are required." });
+    }
+
+    // Find user by reset token and check if it's still valid
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() }, // Ensure token is not expired
+    });
+
+    if (!user) {
+      return res.status(StatusCodes.UNAUTHORIZED).json({ message: "Invalid or expired reset token." });
+    }
+
+    // Update password (it will be hashed automatically in the `pre("save")` middleware)
+    user.password = newPassword;
+
+    // Clear reset token fields
+    user.resetToken = null;
+    user.resetTokenExpiry = null;
+
+    await user.save();
+
+    res.status(StatusCodes.OK).json({ message: "Password has been reset successfully!" });
+  } catch (error) {
+    console.error("Reset Password Error:", error);
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+
 module.exports = {
+  resetPassword,
   registerUser,
   verifyOtp,
   loginUser,

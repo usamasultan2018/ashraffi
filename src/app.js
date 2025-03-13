@@ -1,5 +1,7 @@
 require("dotenv").config({path:"../.env"}); 
 const express = require("express");
+const cors = require("cors"); // Import CORS
+
 const connectDB = require("./config/db");
 const errorHandler = require("./middlewares/errorHandler");
 const authRoutes = require("./routes/authRoutes");
@@ -9,6 +11,13 @@ const userRoutes = require("./routes/userRoutes");
 connectDB();
 
 const app = express();
+app.use(
+  cors({
+    origin: "https://darling-haupia-64d778.netlify.app", // Allow frontend
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true, // Allow cookies if needed
+  })
+);
 app.use(express.json());
 
 // Define Routes
