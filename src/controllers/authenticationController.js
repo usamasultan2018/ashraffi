@@ -5,18 +5,19 @@ const generateOtp = require("../utils/generateOtp");
 const sendEmail = require("../utils/sendEmail");
 const { StatusCodes } = require("http-status-codes");
 
+
 const registerUser = async (req, res) => {
   try {
     const { username, email, password, referredBy } = req.body;
 
     if (!username || !email || !password) {
-      return res.status(400).json({ message: "Missing required fields" });
+      return res.status(StatusCodes.BAD_REQUEST).json({ message: "Missing required fields" });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(409).json({ message: "User already exists" });
+      return res.status(StatusCodes.CONFLICT).json({ message: "User already exists" });
     }
 
     // Generate OTP and expiry
@@ -39,7 +40,7 @@ const registerUser = async (req, res) => {
     if (referredBy) {
       const referrerRecord = await Referral.findOne({ code: referredBy });
       if (!referrerRecord) {
-        return res.status(400).json({ message: "Invalid referral code" });
+        return res.status(StatusCodes.BAD_REQUEST).json({ message: "Invalid referral code" });
       }
       referrer = referrerRecord.userId;
     }
@@ -71,11 +72,20 @@ const registerUser = async (req, res) => {
     // Send OTP email
     await sendEmail(email, otp);
 
-    return res.status(201).json({
+    // Generate JWT Token
+    const token = generateToken(newUser.id);
+    
+
+    return res.status(StatusCodes.CREATED).json({
       message: "OTP sent successfully",
-      userId: newUser._id,
-      referralCode,
-      referredBy: referredBy || null,
+      token:token,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        referralCode: newUser.referralCode,
+        referredBy: referredBy || null,
+      },
     });
   } catch (error) {
     console.error("Registration Error:", error);
@@ -85,6 +95,7 @@ const registerUser = async (req, res) => {
     });
   }
 };
+
 
 const verifyOtp = async (req, res) => {
   try {
