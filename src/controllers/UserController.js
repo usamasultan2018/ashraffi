@@ -1,8 +1,7 @@
 const User = require("../models/User");
 const Referral = require("../models/Referral")
-
 const { StatusCodes } = require("http-status-codes");
-const MESSAGES = require("../constants/Messages");
+const MESSAGES = require("../config/Messages");
 
 const getUserProfile = async (req, res) => {
     try {

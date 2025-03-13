@@ -4,7 +4,7 @@ const {generateToken} = require("../utils/jwtUtils");
 const generateOtp = require("../utils/generateOtp");
 const sendEmail = require("../utils/sendEmail");
 const { StatusCodes } = require("http-status-codes");
-const MESSAGES = require("../constants/Messages");
+const MESSAGES = require("../config/Messages");
 
 const registerUser = async (req, res) => {
   try {
