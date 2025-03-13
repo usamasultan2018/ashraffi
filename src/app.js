@@ -22,7 +22,7 @@ app.use(express.json());
 
 // Define Routes
 app.get("/", (req, res) => {
-  res.status(200).send("Ashrafi Mining API is running...");
+  res.status(200).send("Ashrafi Mining API is running....");
 });
 
 // Auth Routes
