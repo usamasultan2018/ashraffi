@@ -158,11 +158,12 @@ const loginUser = async (req, res) => {
 
     res.status(StatusCodes.OK).json({
       message: "Login successful",
+      token: generateToken(user._id),
       user: {
         _id: user._id,
         username: user.username,
         email: user.email,
-        token: generateToken(user._id),
+        
       },
     });
   } catch (error) {
