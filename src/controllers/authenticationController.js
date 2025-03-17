@@ -5,7 +5,6 @@ const generateOtp = require("../utils/generateOtp");
 const sendEmail = require("../utils/sendEmail");
 const { StatusCodes } = require("http-status-codes");
 
-
 const registerUser = async (req, res) => {
   try {
     const { username, email, password, referredBy } = req.body;
@@ -15,7 +14,7 @@ const registerUser = async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).lean();
     if (existingUser) {
       return res.status(StatusCodes.CONFLICT).json({ message: "User already exists" });
     }
@@ -29,7 +28,7 @@ const registerUser = async (req, res) => {
     let isUnique = false;
     while (!isUnique) {
       referralCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-      const existingReferral = await Referral.findOne({ code: referralCode });
+      const existingReferral = await Referral.findOne({ code: referralCode }).lean();
       if (!existingReferral) {
         isUnique = true;
       }
@@ -37,8 +36,10 @@ const registerUser = async (req, res) => {
 
     // Handle Referral Code Usage
     let referrer = null;
+    let referrerRecord = null;
+
     if (referredBy) {
-      const referrerRecord = await Referral.findOne({ code: referredBy });
+      referrerRecord = await Referral.findOne({ code: referredBy }).lean();
       if (!referrerRecord) {
         return res.status(StatusCodes.BAD_REQUEST).json({ message: "Invalid referral code" });
       }
@@ -53,7 +54,7 @@ const registerUser = async (req, res) => {
       otp,
       otpExpiry,
       referralCode,
-      referredBy: referrer,
+      referredBy: referrer, // Ensure correct reference
     });
 
     await newUser.save();
@@ -62,10 +63,11 @@ const registerUser = async (req, res) => {
     await new Referral({ code: referralCode, userId: newUser._id }).save();
 
     // If referred by someone, update their referral record
-    if (referredBy) {
+    if (referrerRecord) {
       await Referral.findOneAndUpdate(
         { code: referredBy },
-        { $push: { usedBy: newUser._id } }
+        { $push: { usedBy: newUser._id } },
+        { new: true }
       );
     }
 
@@ -74,17 +76,16 @@ const registerUser = async (req, res) => {
 
     // Generate JWT Token
     const token = generateToken(newUser.id);
-    
 
     return res.status(StatusCodes.CREATED).json({
       message: "OTP sent successfully",
-      token:token,
+      token,
       user: {
         id: newUser._id,
         username: newUser.username,
         email: newUser.email,
         referralCode: newUser.referralCode,
-        referredBy: referredBy || null,
+        referredBy: referrer || null,
       },
     });
   } catch (error) {
