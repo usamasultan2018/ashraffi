@@ -79,22 +79,23 @@ const updateUserProfile = async (req, res) => {
 };
 
 
-
-
-
 const deleteUserAccount = async (req, res) => {
     try {
         const userId = req.user.id;
-        const user = await User.findByIdAndDelete(userId);
 
+        // Find and delete the user
+        const user = await User.findByIdAndDelete(userId);
         if (!user) {
             return res.status(StatusCodes.NOT_FOUND).json({
                 message: "User not found.",
             });
         }
 
+        // Delete referral record associated with the user
+        await Referral.findOneAndDelete({ userId });
+
         res.status(StatusCodes.OK).json({
-            message: "User account deleted successfully.",
+            message: "User account and associated referral data deleted successfully.",
         });
     } catch (error) {
         console.error("Delete Account Error:", error);
@@ -103,6 +104,7 @@ const deleteUserAccount = async (req, res) => {
         });
     }
 };
+
 
 const getInvitedUsers = async (req, res) => {
     try {
