@@ -71,8 +71,35 @@ const registerUser = async (req, res) => {
       );
     }
 
-    // Send OTP email
-    await sendEmail(email, otp);
+    const subject = "Your OTP Code for Verification";
+    const text = `Your OTP for verification is: ${otp}`;
+    const htmlContent = `
+        <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
+            <img src="https://res.cloudinary.com/dmzeegkvg/image/upload/v1742383458/profiles/va5brlq3mzicy9wdlt65.png" 
+                 alt="Ashraffi Logo" 
+                 style="width: 150px; margin-bottom: 20px;">
+            
+            <h2 style="color: #333;">Your OTP Code</h2>
+            
+            <p style="font-size: 16px; color: #555;">
+                Use the following OTP to verify your account:
+            </p>
+            
+            <h2 style="color: #007BFF; font-size: 22px;">${otp}</h2>
+            
+            <p style="font-size: 14px; color: #777;">
+                This OTP will expire in <strong>5 minutes</strong>. If you did not request this, please ignore this email.
+            </p>
+            
+            <br>
+            <p style="font-size: 14px; color: #555;">Best Regards,</p>
+            <p style="font-size: 14px; font-weight: bold; color: #333;">Ashraffi Team</p>
+        </div>
+    `;
+    
+    // Send the OTP email
+    await sendEmail(email, subject, text, htmlContent);
+    
 
     // Generate JWT Token
     const token = generateToken(newUser.id);
@@ -121,10 +148,43 @@ const verifyOtp = async (req, res) => {
       });
     }
 
+    // Mark user as verified and remove OTP data
     user.isVerified = true;
     user.otp = null;
     user.otpExpiry = null;
     await user.save();
+
+    // Welcome email content (no OTP)
+    const subject = "Welcome to Ashraffi!";
+    const text = `Hi ${user.username},\n\nWelcome to Ashraffi! We're excited to have you.\n\nBest Regards,\nAshraffi Team`;
+    const htmlContent = `
+    <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
+        <img src="https://res.cloudinary.com/dmzeegkvg/image/upload/v1742383458/profiles/va5brlq3mzicy9wdlt65.png" 
+             alt="Ashraffi Logo" 
+             style="width: 150px; margin-bottom: 20px;">
+        
+        <h1 style="color: #333;">Welcome to Ashraffi!</h1>
+        
+        <p style="font-size: 16px; color: #555;">
+            Hi <strong>${user.username}</strong>,
+        </p>
+        
+        <p style="font-size: 14px; color: #555;">
+            We are thrilled to have you as part of our community. Get ready to explore all the features Ashraffi has to offer!
+        </p>
+        
+        <p style="font-size: 14px; color: #777;">
+            If you have any questions, feel free to contact our support team.
+        </p>
+        
+        <br>
+        <p style="font-size: 14px; color: #555;">Best Regards,</p>
+        <p style="font-size: 14px; font-weight: bold; color: #333;">Ashraffi Team</p>
+    </div>
+    `;
+
+    // Send the welcome email
+    await sendEmail(user.email, subject, text, htmlContent);
 
     res.status(StatusCodes.OK).json({
       message: "Verification successful",
@@ -175,7 +235,7 @@ const loginUser = async (req, res) => {
         _id: user._id,
         username: user.username,
         email: user.email,
-        
+
       },
     });
   } catch (error) {
@@ -246,7 +306,7 @@ const forgotPassword = async (req, res) => {
     }
 
     // Generate a simple random token (16-character alphanumeric)
-    const resetToken = Math.random().toString(36).slice(2, 18);  
+    const resetToken = Math.random().toString(36).slice(2, 18);
     const resetTokenExpiry = Date.now() + 3600000; // Token expires in 1 hour
 
     // Store reset token in the database

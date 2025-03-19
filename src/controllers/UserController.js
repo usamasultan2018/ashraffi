@@ -2,6 +2,8 @@ const User = require("../models/User");
 const Referral = require("../models/Referral");
 const { StatusCodes } = require("http-status-codes");
 const cloudinary = require("../config/cloudinary");
+const admin = require("../config/firebaseConfig"); // Import Firebase config
+
 
 const getUserProfile = async (req, res) => {
     try {
