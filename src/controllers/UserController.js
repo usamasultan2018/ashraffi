@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const Referral = require("../models/Referral");
 const { StatusCodes } = require("http-status-codes");
+const cloudinary = require("../config/cloudinary");
 
 const getUserProfile = async (req, res) => {
     try {
@@ -24,38 +25,62 @@ const getUserProfile = async (req, res) => {
 
 const updateUserProfile = async (req, res) => {
     try {
+        console.log("Request Body:", req.body);
+        console.log("Uploaded File:", req.file); // Ensure this is not undefined
+
         const userId = req.user.id;
         const { username } = req.body;
+        const file = req.file;
 
-        if (!username) {
-            return res.status(StatusCodes.BAD_REQUEST).json({
-                message: "Username is required.",
+        if (!username && !file) {
+            return res.status(400).json({ message: "Username or profile image is required." });
+        }
+
+        let imageUrl;
+        if (file) {
+            const uploadPromise = new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    {
+                        folder: "profiles",
+                        public_id: `profile_${userId}`,
+                        overwrite: true,
+                        transformation: [{ width: 300, height: 300, crop: "fill" }],
+                    },
+                    (error, result) => {
+                        if (error) {
+                            console.error("Cloudinary Upload Error:", error);
+                            reject(error);
+                        } else {
+                            resolve(result.secure_url);
+                        }
+                    }
+                );
+                stream.end(file.buffer);
             });
+
+            imageUrl = await uploadPromise;
         }
 
         const user = await User.findByIdAndUpdate(
             userId,
-            { username },
+            { username, profileImage: imageUrl },
             { new: true, runValidators: true }
         ).select("-password");
 
         if (!user) {
-            return res.status(StatusCodes.NOT_FOUND).json({
-                message: "User not found.",
-            });
+            return res.status(404).json({ message: "User not found." });
         }
 
-        res.status(StatusCodes.OK).json({
-            message: "User profile updated successfully.",
-            user,
-        });
+        res.status(200).json({ message: "Profile updated successfully.", user });
     } catch (error) {
         console.error("Update Profile Error:", error);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
-            message: "Internal server error.",
-        });
+        res.status(500).json({ message: "Internal server error." });
     }
 };
+
+
+
+
 
 const deleteUserAccount = async (req, res) => {
     try {
