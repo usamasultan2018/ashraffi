@@ -1,4 +1,3 @@
-const admin = require("../config/firebaseAdmin");
 const nodemailer = require("nodemailer");
 
 
