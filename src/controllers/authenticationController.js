@@ -4,6 +4,12 @@ const { generateToken } = require("../utils/jwtUtils");
 const generateOtp = require("../utils/generateOtp");
 const sendEmail = require("../utils/sendEmail");
 const { StatusCodes } = require("http-status-codes");
+const {
+  generateOtpEmail,
+  generateWelcomeEmail,
+  generateResetPasswordEmail
+} = require("../utils/emailTemplates");
+
 
 const registerUser = async (req, res) => {
   try {
@@ -71,35 +77,7 @@ const registerUser = async (req, res) => {
       );
     }
 
-    const subject = "Your OTP Code for Verification";
-    const text = `Your OTP for verification is: ${otp}`;
-    const htmlContent = `
-        <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
-            <img src="https://res.cloudinary.com/dmzeegkvg/image/upload/v1742383458/profiles/va5brlq3mzicy9wdlt65.png" 
-                 alt="Ashraffi Logo" 
-                 style="width: 150px; margin-bottom: 20px;">
-            
-            <h2 style="color: #333;">Your OTP Code</h2>
-            
-            <p style="font-size: 16px; color: #555;">
-                Use the following OTP to verify your account:
-            </p>
-            
-            <h2 style="color: #007BFF; font-size: 22px;">${otp}</h2>
-            
-            <p style="font-size: 14px; color: #777;">
-                This OTP will expire in <strong>5 minutes</strong>. If you did not request this, please ignore this email.
-            </p>
-            
-            <br>
-            <p style="font-size: 14px; color: #555;">Best Regards,</p>
-            <p style="font-size: 14px; font-weight: bold; color: #333;">Ashraffi Team</p>
-        </div>
-    `;
-    
-    // Send the OTP email
-    await sendEmail(email, subject, text, htmlContent);
-    
+    await sendEmail(email, "Your OTP Code", generateOtpEmail(user.username, user.otp));
 
     // Generate JWT Token
     const token = generateToken(newUser.id);
@@ -154,37 +132,8 @@ const verifyOtp = async (req, res) => {
     user.otpExpiry = null;
     await user.save();
 
-    // Welcome email content (no OTP)
-    const subject = "Welcome to Ashraffi!";
-    const text = `Hi ${user.username},\n\nWelcome to Ashraffi! We're excited to have you.\n\nBest Regards,\nAshraffi Team`;
-    const htmlContent = `
-    <div style="text-align: center; padding: 20px; font-family: Arial, sans-serif;">
-        <img src="https://res.cloudinary.com/dmzeegkvg/image/upload/v1742383458/profiles/va5brlq3mzicy9wdlt65.png" 
-             alt="Ashraffi Logo" 
-             style="width: 150px; margin-bottom: 20px;">
-        
-        <h1 style="color: #333;">Welcome to Ashraffi!</h1>
-        
-        <p style="font-size: 16px; color: #555;">
-            Hi <strong>${user.username}</strong>,
-        </p>
-        
-        <p style="font-size: 14px; color: #555;">
-            We are thrilled to have you as part of our community. Get ready to explore all the features Ashraffi has to offer!
-        </p>
-        
-        <p style="font-size: 14px; color: #777;">
-            If you have any questions, feel free to contact our support team.
-        </p>
-        
-        <br>
-        <p style="font-size: 14px; color: #555;">Best Regards,</p>
-        <p style="font-size: 14px; font-weight: bold; color: #333;">Ashraffi Team</p>
-    </div>
-    `;
+    await sendEmail(email, "Welcome to Ashraffi!", generateWelcomeEmail(user.username));
 
-    // Send the welcome email
-    await sendEmail(user.email, subject, text, htmlContent);
 
     res.status(StatusCodes.OK).json({
       message: "Verification successful",
@@ -274,7 +223,7 @@ const resendOtp = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
-    await sendEmail(email, "Resend OTP", `Your OTP is: ${user.otp}`);
+    await sendEmail(email, "Your OTP Code", generateOtpEmail(user.username, user.otp));
 
     res.status(StatusCodes.OK).json({
       message: "OTP sent successfully",
@@ -314,11 +263,8 @@ const forgotPassword = async (req, res) => {
     user.resetTokenExpiry = resetTokenExpiry;
     await user.save();
 
-    // Generate reset password link
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-
-    // Send reset email
-    await sendEmail(email, "Reset Your Password", `Click here to reset your password: ${resetLink}`);
+    await sendEmail(email, "Reset Your Password", generateResetPasswordEmail(user.username, resetLink));
 
     res.status(StatusCodes.OK).json({
       message: "Reset link sent successfully",
