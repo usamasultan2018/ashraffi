@@ -77,7 +77,7 @@ const registerUser = async (req, res) => {
       );
     }
 
-    await sendEmail(email, "Your OTP Code", generateOtpEmail(user.username, user.otp));
+    await sendEmail(email, "Your OTP Code", generateOtpEmail(newUser.username, newUser.otp));
 
     // Generate JWT Token
     const token = generateToken(newUser.id);
