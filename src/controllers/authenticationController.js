@@ -223,7 +223,7 @@ const resendOtp = async (req, res) => {
     user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000);
     await user.save();
 
-    await sendEmail(email, "Your OTP Code", generateOtpEmail(user.username, user.otp));
+    await sendEmail(email, "Your OTP Code", "",generateOtpEmail(user.username, user.otp));
 
     res.status(StatusCodes.OK).json({
       message: "OTP sent successfully",
