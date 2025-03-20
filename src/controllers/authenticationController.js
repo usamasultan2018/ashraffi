@@ -77,7 +77,7 @@ const registerUser = async (req, res) => {
       );
     }
 
-    await sendEmail(email, "Your OTP Code", generateOtpEmail(newUser.username, newUser.otp));
+    await sendEmail(email, "Your OTP Code","" ,generateOtpEmail(newUser.username, newUser.otp));
 
     // Generate JWT Token
     const token = generateToken(newUser.id);
@@ -132,7 +132,7 @@ const verifyOtp = async (req, res) => {
     user.otpExpiry = null;
     await user.save();
 
-    await sendEmail(email, "Welcome to Ashraffi!", generateWelcomeEmail(user.username));
+    await sendEmail(email, "Welcome to Ashraffi!","", generateWelcomeEmail(user.username));
 
 
     res.status(StatusCodes.OK).json({
@@ -264,7 +264,7 @@ const forgotPassword = async (req, res) => {
     await user.save();
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    await sendEmail(email, "Reset Your Password", generateResetPasswordEmail(user.username, resetLink));
+    await sendEmail(email, "Reset Your Password","", generateResetPasswordEmail(user.username, resetLink));
 
     res.status(StatusCodes.OK).json({
       message: "Reset link sent successfully",
